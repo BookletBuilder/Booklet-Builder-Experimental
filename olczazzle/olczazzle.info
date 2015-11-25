@@ -1,0 +1,4 @@
+package = .OLC
+name = OLC Zazzle
+description = Generates products from textbook content
+core = 7.x

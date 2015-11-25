@@ -1,0 +1,5 @@
+package = .OLC Quiz App
+name = OLC Quiz App: Listen and Write
+description = Listen to a sound recording, and write down response.
+core = 7.x
+

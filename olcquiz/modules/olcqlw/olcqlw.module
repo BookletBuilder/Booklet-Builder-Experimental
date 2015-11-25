@@ -1,0 +1,46 @@
+<?php
+
+function olcqlw_olcquiz_apps() {
+  $path = drupal_get_path('module', 'olcqlw');
+  $olcquiz_path = drupal_get_path('module', 'olcquiz');
+  return array(
+    'olcqlw' => array(
+    
+      'machine_name' => 'olcqlw',
+      
+      'name' => 'Listen and Draw',
+      'description' => 'This test consists of playing an audio recording and providing a space for participants to write a response.',
+      
+      'applies to' => array(
+        'morpheme'
+      ),
+      
+      'step_add_app' => array(
+        'js_file' => $path.'/step_add_app/callback.js',
+        'js_callback' => 'OLCQuizLW_onAddApp_init',
+      ),
+      
+      'step_check_requirements' => array(
+        'js_file' => $path.'/step_check_requirements/callback.js',
+        'js_callback' => 'OLCQuizLW_onCheckRequirements_init',
+        'js_mustache' => array(
+          'requirements_table' => file_get_contents($path.'/step_check_requirements/requirements-table.mus.html'),
+        ),
+        'missing_url' => $GLOBALS['base_url'].'/'.$olcquiz_path.'/media/missing.png'
+      ),
+      
+      'step_content_app_options' => array(
+        'js_file' => $path.'/step_content_app_options/callback.js',
+        'js_callback' => 'OLCQuizLW_onContentAppOptions_init',
+        'js_mustache' => array(
+          'pick_items' => file_get_contents($path.'/step_content_app_options/pick-items.mus.html'),
+        ),
+        'stylesheet' => $path.'/step_content_app_options/style.css',
+        'missing_url' => $GLOBALS['base_url'].'/'.$olcquiz_path.'/media/missing.png',
+        'throbber_url' => $GLOBALS['base_url'].'/'.$olcquiz_path.'/media/throbber.gif',
+      ),
+      
+    ),
+  );
+}
+

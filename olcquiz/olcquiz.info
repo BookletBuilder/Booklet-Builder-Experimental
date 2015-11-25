@@ -1,0 +1,6 @@
+package = .OLC
+name = OLC Quiz
+description = Manages creation of quizzes
+core = 7.x
+dependencies []= typetype
+dependencies []= olcapi

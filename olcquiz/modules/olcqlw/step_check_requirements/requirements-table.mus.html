@@ -1,0 +1,33 @@
+<table>
+  <thead>
+    <tr>
+      <th>Question audio</th>
+      <th>Answer text</th>
+    </th>
+  </thead>
+  <tbody>
+    {{#part}}{{#node.olcbooklet_parts}}
+    <tr><td>
+      {{#item.lkt.audio}}
+        {{#und.0}}
+          <audio controls><source src="http://textbook.olc.edu/api/file/{{fid}}"/></audio>
+        {{/und.0}}
+        {{^und.0}}
+          {{missing_url}}
+          <img src="{{missing.url}}" /> This item is missing
+        {{/und.0}}
+      {{/item.lkt.audio}}
+    </td><td>
+      {{#item.lkt.text}}
+        {{#und.0}}
+          {{safe_value}}
+        {{/und.0}}
+        {{^und.0}}
+          <img src="{{missing.url}}" /> This item is missing
+        {{/und.0}}
+      {{/item.lkt.text}}
+    </td></tr> 
+    {{/node.olcbooklet_parts}}{{/part}}
+  </tbody>
+</table>
+

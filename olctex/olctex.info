@@ -1,0 +1,5 @@
+package = .OLC
+name = OLC XeTeX
+description = Creates XeTeX files from OLC Lakota language textbook content
+core = 7.x
+dependencies []= olcapi

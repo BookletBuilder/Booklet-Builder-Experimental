@@ -1,0 +1,41 @@
+<?php
+
+function olczazzle_menu() {
+  return array(
+    'node/%node/zazzle/%' => array(
+      'title' => 'Mercandise',
+      'menu_name' => 'main-menu',
+      'access arguments' => array('access content'),
+      'page callback' => '_olczazzle_page',
+      'page arguments' => array(3, 1),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+  );
+}
+
+function _olczazzle_page($merch_type, $node) {
+  $merch_themes = array(
+    'mug' => 'olczazzle_mug',
+  );
+  if (isset($merch_themes[$merch_type])) {
+    return theme($merch_themes[$merch_type], array('node' => $node));
+  }
+  else {
+    return 'Product type unavailable.';
+  }
+}
+
+function olczazzle_theme($existing, $type, $theme, $path) {
+  $hooks = array();
+  $path = drupal_get_path('module', 'olczazzle');
+  $base = array(
+    'path' => $path . '/theme',
+  );
+  $hooks['olczazzle_mug'] = $base + array(
+    'template' => 'olczazzle-mug',
+    'variables' => array(
+      'node' => NULL,
+    ),
+  );
+  return $hooks;
+}

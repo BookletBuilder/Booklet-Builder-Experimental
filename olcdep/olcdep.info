@@ -1,0 +1,4 @@
+package = .OLC
+name = OLC Dependency Graphs
+description = Uses GraphViz to chart dependencies 
+core = 7.x

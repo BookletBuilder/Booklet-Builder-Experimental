@@ -1,0 +1,65 @@
+<?php
+
+function olcmustache_theme($existing, $type, $theme, $path) {
+  
+  $hooks = array();
+  $path = drupal_get_path('module', 'olcmustache');
+  
+  $bilingual_base = array(
+    'path' => $path . '/theme-bilingual',
+  );
+
+  $hook_template_names = array(
+
+    // Overall document (displays one or more booklets)
+    'olcmustache-document-rendered',
+    'olcmustache-document',
+
+      // The booklet
+      'olcmustache-bilingual-section',
+
+        // The booklet picture
+        'olcmustache-picture',
+
+        // Containers
+        'olcmustache-columns',
+        'olcmustache-container',
+        'olcmustache-grid',
+
+          // The micro-instructions which go along with the content
+          'olcmustache-instruction',
+
+          // Parts:
+          'olcmustache-lesson',
+      		'olcmustache-bilingual-article',
+          'olcmustache-bilingual-narrative',
+      		'olcmustache-bilingual-conversation-container',
+      			'olcmustache-bilingual-conversation',
+      		'olcmustache-bilingual-sentence',
+      		'olcmustache-bilingual-phrase',
+      		'olcmustache-bilingual-name',
+      		'olcmustache-bilingual-conjugation-container',
+      			'olcmustache-bilingual-conjugation',
+          'olcmustache-bilingual-word',
+      		'olcmustache-bilingual-morpheme',
+      		'olcmustache-bilingual-morpheme-table-container',
+      		'olcmustache-bilingual-morpheme-table-row',
+
+  );
+  foreach ($hook_template_names as $hook_template_name) {
+    $hook_name = str_replace('-', '_', $hook_template_name);
+    $hooks [$hook_name] = $bilingual_base + array(
+      'template' => $hook_template_name,
+      'variables' => array(),
+    ); 
+  }
+  
+  // Custom variables
+  $hooks['olcmustache_document']['data'] = array();
+  $hooks['olcmustache_document_rendered']['data'] = array();
+  $hooks['olcmustache_columns']['variables']['cols'] = 2;
+  
+  return $hooks;
+  
+}
+

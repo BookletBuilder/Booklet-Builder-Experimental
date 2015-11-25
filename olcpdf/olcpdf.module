@@ -1,0 +1,137 @@
+<?php
+
+function olcpdf_menu() {
+  $items = array();
+  $items['api/section/%node/format/pdf'] = array(
+    'page callback' => '_olcapi_section_pdf',
+    'page arguments' => array(2),
+    'delivery callback' => '_olcpdf_representation',
+    'access arguments' => array('access content'),
+  	'type' => MENU_CALLBACK,
+  	'file' => 'olcpdf.olcapi.inc',
+  );
+  $items['api/chapter/%taxonomy_term/format/pdf'] = array(
+    'page callback' => '_olcapi_term_pdf',
+    'page arguments' => array(2),
+    'delivery callback' => '_olcpdf_representation',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  	'file' => 'olcpdf.olcapi.inc',
+  );
+  return $items;
+}
+
+function _olcpdf_representation ($data) {
+  header('Content-type: application/pdf');
+  echo $data;
+  module_invoke_all('exit');
+  exit;
+}
+
+function _olcpdf_print_error_log($log_filepath) {
+
+  // Print header message
+  echo '<h1>Problem generating PDF file</h1>';
+  echo '<h2>Log file results:</h2>';
+
+  // Print error log
+  $log = file_get_contents($log_filepath);
+  dpr($log);
+
+}
+
+function _olcpdf_provision_graphics($tex, $destination_dir) {
+
+  // Get filepaths (of graphics)
+  $filepaths = array();
+  $tex_filepath_matches = array();
+  preg_match_all('/includegraphics.*{\\s*(.*)\\s*}/Us', $tex, $tex_filepath_matches);
+  if (isset($tex_filepath_matches[1])) {
+    $filepaths = $tex_filepath_matches[1];
+  }
+  else {
+  	// No graphics  
+  }
+  
+  // Make sure destination directory exists
+  if (count($filepaths) > 0) {
+    file_prepare_directory($destination_dir, FILE_CREATE_DIRECTORY || FILE_MODIFY_PERMISSIONS);
+  }
+  else {
+    // Destination directory unnecessary (no graphics files found)
+  }
+    
+  foreach ($filepaths as $filepath) {
+    
+    // Get file directory
+    $filepath_dir_array = explode('/', $filepath);
+    
+    // Get filename
+    $filename = array_pop($filepath_dir_array);
+
+    // Make sure file directory exists 
+    $filepath_dir = $destination_dir.'/'.implode('/', $filepath_dir_array);
+    file_prepare_directory($filepath_dir, FILE_CREATE_DIRECTORY || FILE_MODIFY_PERMISSIONS);
+    
+    // Get file info
+    $filepath_info = explode('-', trim($filename));
+    
+    // Load and prepare file object
+    $file = file_load($filepath_info[0]);
+    $file->filepath = drupal_realpath($file->uri);
+    $file->image_style_name = $filepath_info[1];
+    $file->image_style_destination = $destination_dir.'/'.trim($filepath);
+    
+    if (!file_exists($file->image_style_destination)) {
+      
+      // Generate expected file
+      image_style_create_derivative(
+        $file->image_style_name,
+        $file->filepath,
+        $file->image_style_destination
+      );
+      
+    }
+    else {
+      // File already exists; no need to generate one
+    }
+    
+  }
+  
+}
+
+function _olcpdf_get_chapter_tree($term) {
+
+  // Load the API
+  module_load_include('inc', 'olcapi', 'olcapi');
+  
+  $chapter_vocab = taxonomy_vocabulary_machine_name_load(CHAPTER_TAXONOMY_NAME);
+  $sub_terms = taxonomy_get_tree($chapter_vocab->vid, $term->tid, NULL, TRUE);
+  foreach ($sub_terms as &$sub_term) {
+    $sub_term->sections = taxonomy_select_nodes($sub_term->tid);
+  }
+  
+  // Prepare an array of terms, indexed by tid
+  $indexed_terms = array();
+  $indexed_terms[$term->tid] = $term;
+  foreach ($sub_terms as &$sub_term) {
+    $indexed_terms[$sub_term->tid] = &$sub_term;
+  }
+
+  // Collect the sections under each term
+  foreach ($indexed_terms as &$indexed_term) {
+    $indexed_term->sections = taxonomy_select_nodes($indexed_term->tid);
+    usort($indexed_term->sections, '_olcapi_compare_nids_by_node_weight');
+  }
+
+  foreach ($sub_terms as &$sub_term) {
+    foreach ($sub_term->parents as $sub_term_parent_nid) {
+      $indexed_terms[$sub_term_parent_nid]->children[]= &$sub_term;
+    }
+  }
+  
+  // Create the tree of terms
+  $tree = $indexed_terms[$term->tid];
+  return $tree;
+  
+}

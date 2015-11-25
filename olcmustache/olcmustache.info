@@ -1,0 +1,4 @@
+package = .OLC Formats
+name = OLC Mustache.js Template
+description = Creates mustache.js templates for using with the API data
+core = 7.x

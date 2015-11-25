@@ -1,0 +1,109 @@
+<?php
+
+// Page
+// Run graph viz
+// Print results
+
+function olcdep_menu() {
+  return array(
+    'prereqs' => array(
+      'title' => 'Prerequisites',
+      'menu_name' => 'main-menu',
+      'access arguments' => array('access content'),
+      'page callback' => '_olcdep_prereq_page',
+      'type' => MENU_NORMAL_ITEM,
+    ),
+  );
+}
+
+function _olcdep_prereq_page() {
+  
+  // Create cache dir
+  $path = drupal_get_path('module', 'olcdep');
+  $cache_path = getcwd().'/'.$path.'/cache';
+  file_prepare_directory($cache_path, FILE_CREATE_DIRECTORY || FILE_MODIFY_PERMISSIONS);
+  
+  // Generate dependency file
+  $deps = theme('olcdep_digraph', array(
+    'dependencies' => _olcdep_query_dependencies()
+  ));
+  file_put_contents($cache_path.'/graph.viz', $deps);
+  
+  // Run graphviz
+  $drupal_cwd = getcwd();
+  chdir($cache_path);
+  $cmd = "dot -Tpng $cache_path/graph.viz > graph.png";
+  $result = shell_exec($cmd);
+  chdir($drupal_cwd);
+  
+  // Load report of dependencies
+  $graph = "<a href='$path/cache/graph.png'><img src='$path/cache/graph.png' width='600' /></a>";
+  return $graph;
+  
+}
+
+function olcdep_theme() {
+  $path = drupal_get_path('module', 'olcdep');
+  $base = array(
+    'path' => $path . '/theme',
+  );
+  $hooks = array();
+  $hooks['olcdep_digraph'] = $base + array(
+    'template' => 'olcdep-digraph',
+    'variables' => array(
+      'dependencies' => array()
+    ),
+  );
+  $hooks['olcdep_dependency'] = $base + array(
+    'template' => 'olcdep-dependency',
+    'variables' => array(
+      'dependency' => array(
+        'subject' => 'SUBJECT', 
+        'requirement' => 'REQUIREMENT'
+      )
+    ),
+  );
+  return $hooks;
+}
+
+function _olcdep_query_dependencies() {
+  $result = db_query('
+    select
+      n.nid
+    from
+      {node} n
+    where
+      n.type = :type
+  ',
+  array(
+    ':type' => 'section',
+  ));
+  
+  // Get sections
+  $sections = array();
+  foreach ($result as $row) {
+    $sections []= node_load($row->nid);
+  }
+  
+  // Get dependencies
+  $deps = array();
+  foreach ($sections as $section) {
+    $dep = array(
+      'subject' => array(
+        'nid' => $section->nid,
+        'label' => $section->title,
+      ),
+    );
+    if (!empty($section->field_prerequisites)) {
+      foreach ($section->field_prerequisites['und'] as $req) {
+        $dep['requirement'] = $req['target_id']; 
+        $deps []= $dep;
+      }
+    }
+    else {
+      $deps []= $dep;
+    }
+  }
+  
+  return $deps;
+}

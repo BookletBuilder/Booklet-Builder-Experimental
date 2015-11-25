@@ -1,0 +1,23 @@
+#quiz-app-node-form #edit-field-booklet {
+  display: none;
+}
+
+#quiz-app-node-form #edit-field-quiz {
+  display: none;
+}
+
+#quiz-app-node-form #edit-field-booklet-part {
+  display: none;
+}
+
+#quiz-app-node-form #edit-field-quiz-app-type {
+  display: none;
+}
+
+#quiz-app-node-form #edit-field-quiz-app-data {
+  display: none;
+}
+
+#quiz-app-node-form #edit-group-audience {
+  display: none;
+}

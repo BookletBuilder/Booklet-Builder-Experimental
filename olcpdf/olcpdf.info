@@ -1,0 +1,6 @@
+package = .OLC
+name = OLC PDF
+description = Creates PDF files from OLC Lakota language textbook content
+core = 7.x
+dependencies []= olcapi
+dependencies []= olctex

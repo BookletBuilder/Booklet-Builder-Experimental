@@ -1,0 +1,190 @@
+<?php
+
+function olcquiz_typetype() {
+  return array(
+    'olcquiz_is_a_quiz' => array('title' => 'This is a quiz'),
+    'olcquiz_is_a_quiz_app' => array('title' => 'This is a quiz app')
+  );
+}
+
+// Add menu to quiz
+function olcquiz_node_view($node, $view_mode, $langcode) {
+  if (typetype_is_on($node->type, 'olcquiz_is_a_quiz')) {
+    // Modifications for quiz nodes
+  }
+  elseif (typetype_is_on($node->type, 'olcquiz_is_a_quiz_app')) {
+    // Modifications for quiz app nodes
+  }
+}
+
+function olcquiz_menu() {
+  return array(
+    'olcquiz-step-add-app/%node/%node' => array(
+      'title' => 'Quiz: Add section',
+      'page callback'  => '_olcquiz_step_add_app_page',
+      'page arguments' => array(1, 2),
+      'access callback' => TRUE,
+    ),
+    'olcquiz-step-check-requirements/%node/%node/%/%' => array(
+      'title' => 'Quiz: Check requirements',
+      'page callback'  => '_olcquiz_step_check_requirements_page',
+      'page arguments' => array(1, 2, 3, 4),
+      'access callback' => TRUE,
+    ),
+  );
+}
+
+function _olcquiz_step_add_app_page($booklet, $quiz) {
+  return theme('olcquiz_step_add_app', array('booklet' => $booklet, 'quiz' => $quiz));
+}
+
+function _olcquiz_step_check_requirements_page($booklet, $quiz, $quiz_app_type, $booklet_content_type) {
+  return theme('olcquiz_step_check_requirements', array(
+    'booklet' => $booklet,
+    'quiz' => $quiz, 
+    'quiz_app_type' => $quiz_app_type, 
+    'booklet_content_type' => $booklet_content_type
+  ));
+}
+
+function olcquiz_theme() {
+
+  $hooks = array();
+  $path = drupal_get_path('module', 'olcquiz');
+
+  $hooks ['olcquiz_step_add_app'] = array(
+    'arguments' => array(
+      'booklet' => NULL,
+      'quiz' => NULL,
+    ),
+    'path' => $path . '/step_add_app',
+    'template' => 'driver'
+  );
+  $hooks ['olcquiz_step_check_requirements'] = array(
+    'arguments' => array(
+      'booklet' => NULL,
+      'quiz' => NULL,
+      'quiz_app_type' => NULL,
+      'booklet_content_type' => NULL
+    ),
+    'path' => $path . '/step_check_requirements',
+    'template' => 'driver'
+  );
+  $hooks ['olcquiz_step_content_app_options'] = array(
+    'arguments' => array(
+      'quiz_app_type' => NULL,
+    ),
+    'path' => $path . '/step_content_app_options',
+    'template' => 'driver'
+  );
+
+  return $hooks;
+
+}
+
+function olcquiz_preprocess_page($var) {
+  $hooks = module_invoke_all('olcquiz_apps');
+  $steps = array(
+    'step_add_app', 
+    'step_check_requirements', 
+    'step_content_app_options'
+  );
+  foreach ($hooks as $hook) {
+    foreach ($steps as $step) {
+      if (isset($hook[$step]['stylesheet'])) {
+        // Unique basenames are required
+        drupal_add_css($hook[$step]['stylesheet'], array('basename' => $step.'css'));
+      }
+      else {
+        // continue
+      }
+    } // end foreach
+  } // end foreach
+}
+
+function olcquiz_form_alter(&$form, &$form_state, $form_id) {
+  // TODO: Use typetype
+  if ($form_id == 'quiz_app_node_form') {
+
+    $path = drupal_get_path('module', 'olcquiz');
+    drupal_add_css($path.'/style/node-edit.css');
+
+    $is_edit_form = arg(0).'/'.arg(2) == 'node/edit' && is_numeric(arg(1));
+    $is_add_form = arg(0).'/'.arg(1) == 'node/add';
+
+    // Initialize quiz app variables
+    if ($is_add_form) {
+      $booklet_nid = arg(3);
+      $quiz_nid = arg(4);
+      $quiz_app_type = arg(5);
+      $booklet_part = arg(6);
+    }
+    elseif ($is_edit_form) {
+      $booklet_nid = $form['#node']->field_booklet['und'][0]['target_id'];
+      $quiz_nid = $form['#node']->field_quiz['und'][0]['target_id'];
+      $quiz_app_type = $form['field_quiz_app_type']['und'][0]['value']['#default_value'];
+      $booklet_part = $form['#node']->field_booklet_part['und'][0]['safe_value'];
+    }
+    else {
+      // Unknown form state
+    }
+
+    // Load app
+    mustache_js_load();
+    libraries_load('json2');
+    $hooks = module_invoke_all('olcquiz_apps');
+    $hook = $hooks[$quiz_app_type];
+    drupal_add_js(array('quizAppHook' => $hook), 'setting');
+    drupal_add_js(array('quizAppSettings' => array(
+      'bookletNID' => $booklet_nid,
+      'quizNID' => $quiz_nid,
+      'quizAppType' => $quiz_app_type,
+      'bookletPart' => $booklet_part,
+    )), 'setting');
+    drupal_add_js(array('apiURL' => $GLOBALS['base_url'].'/api'), 'setting');
+    drupal_add_js($hook['step_content_app_options']['js_file']);
+    drupal_add_js($path.'/step_content_app_options/driver.js');
+
+    // Default form options
+    if ($is_add_form) {
+      $booklet = node_load($booklet_nid);
+      $form['field_booklet']['und'][0]['target_id']['#default_value'] = $booklet->title.' ('.$booklet_nid.')';
+      $quiz = node_load($quiz_nid);
+      $form['field_quiz']['und'][0]['target_id']['#default_value'] = $quiz->title.' ('.$quiz_nid.')';
+      $form['field_quiz_app_type']['und'][0]['value']['#default_value'] = $quiz_app_type;
+      $form['field_booklet_part']['und'][0]['value']['#default_value'] = $booklet_part;
+    }
+    else {
+      // continue
+    }
+  }
+  else {
+    // continue
+  }
+}
+
+function olcquiz_node_load($nodes, $types) {
+
+  // VALID TYPES APPLIES TO QUIZ APP FOR THIS PARTICULAR PUPROSE
+  // TO PERFORM ADDITONAL LOAD MODIFICATION, CREATED A NEW CODE BLOCK
+  // TODO: USE TYPETYPE
+  $valid_types = array('quiz_app');
+  $valid_types_found = array_intersect($types, $valid_types);
+  if ($valid_types_found) {
+    // Add JSON to quiz app
+    foreach ($nodes as $node) {
+      foreach ($node->field_quiz_app_data as &$lang) {
+        foreach ($lang as &$item) {
+          $item['data'] = json_decode($item['value']);
+          $safe_structure = html_entity_decode($item['safe_value']);
+          $item['safe_data'] = json_decode($safe_structure);
+        }
+      }
+    }
+  }
+  else {
+    // early exit
+  }
+
+}
+

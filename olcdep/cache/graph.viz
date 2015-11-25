@@ -1,0 +1,124 @@
+digraph prereqs {
+  rankdir="LR";
+  charset="UTF-8";
+      4 [
+  label="Introduction (Introduction)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 4;
+      7 [
+  label="The Lakota Alphabet (The Lakota Alphabet)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7;
+      52 [
+  label="Syllables (Syllables)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  165 -> 52;
+      57 [
+  label="Gutterals (Gutterals)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  52 -> 57;
+      61 [
+  label="Nasalized Vowels (Nasalized Vowels)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  57 -> 61;
+      66 [
+  label="Velorized Consonants (Velorized Consonants)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  61 -> 66;
+      69 [
+  label="Meeting Strangers (Meeting Strangers)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 69;
+      72 [
+  label="Going Somewhere (Going Somewhere)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 72;
+      76 [
+  label="Oṫúƞwahe (Town)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 76;
+      78 [
+  label="Wiċóti (Village)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 78;
+      81 [
+  label="Verbal Conjugations (Verbal Conjugations)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 81;
+      89 [
+  label="The Five Senses (The Five Sense)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 89;
+      96 [
+  label="Owote tipi (Restaurant)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 96;
+      103 [
+  label="Test Section Lakota (Test Section English)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 103;
+      108 [
+  label="New section in Lakota (New section in English)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 108;
+      123 [
+  label="Lesson 215 in Lakota (Lesson 215 in English)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 123;
+      165 [
+  label="Vowels (Vowels)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 165;
+      247 [
+  label="Inside Cover (Inside Cover)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 247;
+      249 [
+  label="Acknowledgements (Acknowledgements)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 249;
+      251 [
+  label="New section in Lakota (New section in English)", 
+  width=5, height=2, 
+  fontname="Aboriginal Sans"
+];
+  7 -> 251;
+  }

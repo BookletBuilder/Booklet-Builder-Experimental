@@ -1,0 +1,399 @@
+<?php
+
+function olctex_menu() {
+  $items['api/section/%node/format/xetex'] = array(
+    'page callback' => '_olcapi_xetex',
+    'page arguments' => array(2),
+    'delivery callback' => '_olctex_representation',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  	'file' => 'olctex.olcapi.inc',
+  );
+  return $items;
+}
+
+function _olctex_representation ($content) {
+  // TeX as plain text (could be other representations later)
+  header('Content-type: text/plain; charset=utf-8');
+  echo $content;
+  module_invoke_all('exit');
+  exit;
+}
+
+function _olctex_error_message($message, $context) {
+
+  header('Content-type: text/plain');
+  $EOL = "\n";
+
+  echo $EOL . '#######################################';
+  echo $EOL . 'THERE WAS A PROBLEM PROCESSING TEX FILE';
+  echo $EOL . '#######################################';
+  echo $EOL;
+
+  echo $EOL . '########';
+  echo $EOL . 'Message:';
+  echo $EOL . '########';
+  echo $EOL . $EOL;
+
+  print_r($message);
+
+  echo $EOL . '########';
+  echo $EOL . 'Context:';
+  echo $EOL . '########';
+  echo $EOL . $EOL;
+
+  print_r($context);
+
+  module_invoke_all('exit');
+  exit;
+
+}
+
+/**
+ * Implementation of HOOK_theme().
+ */
+function olctex_theme($existing, $type, $theme, $path) {
+
+  // Result variable
+  $hooks = array();
+
+  // Custom values
+  $OLCTEX_COLUMNS_COLUMN_COUNT = 2;
+  
+  $hook_template_names = array(
+
+    // The overall document, might contain one or more booklets
+    'olctex-document',
+
+      // The booklet
+      'olctex-bilingual-section',
+
+        // The booklet picture
+        'olctex-picture',
+
+        // Containers
+        'olctex-columns',   // Table container
+        'olctex-container', // Simple listing of items
+        'olctex-grid',      // NOT USED
+
+          // The micro-instructions which go along with the content
+          'olctex-instruction',
+
+          // Parts
+          'olctex-lesson',
+          'olctex-bilingual-article',
+          'olctex-bilingual-narrative',
+          'olctex-bilingual-conversation-container',
+            'olctex-bilingual-conversation',
+          'olctex-bilingual-sentence',
+          'olctex-bilingual-phrase',
+          'olctex-bilingual-person',
+          'olctex-bilingual-place',
+          'olctex-bilingual-conjugation-container',
+            'olctex-bilingual-conjugation',
+          'olctex-bilingual-word',
+          'olctex-bilingual-morpheme',
+            'olctex-bilingual-morpheme-table-container',
+            'olctex-bilingual-morpheme-table-row',
+
+  );
+  
+  // Defaults
+  $path = drupal_get_path('module', 'olctex');
+  $bilingual_base = array(
+      'path' => $path . '/theme-bilingual',
+  );
+  
+  // Prepare hooks
+  foreach ($hook_template_names as $hook_template_name) {
+    $hook_name = str_replace('-', '_', $hook_template_name);
+    $hooks [$hook_name] = $bilingual_base + array(
+      'template' => $hook_template_name,
+      'variables' => array(
+        'data' => array()
+      ),
+    ); 
+  }
+
+  // Custom values
+  $hooks['olctex_columns']['variables']['cols'] = $OLCTEX_COLUMNS_COLUMN_COUNT;
+  $hooks['olctex_container']['variables']['separator'] = '';
+  
+  $hooks['olctex_section_header'] = $bilingual_base + array(
+    'template' => 'olctex-section-header',
+    'variables' => array(
+        'section_type' => 'section',
+        'heading_text' => 'TITLE MISSING',
+        'subheading_text' => ''
+    )
+  );
+  
+  return $hooks;
+  
+}
+
+function _olctex_theme_multiple($theme_function, $items) {
+  $formatted_items = array();
+  foreach ($items as $item) {
+    $formatted_items []= theme(
+      $theme_function,
+      array(
+        'data' => $item
+      )
+    );
+  }
+  return $formatted_items;
+}
+
+function _olctex_dom_saveInnerHTML ($dom, $source_node) {
+  $result = '';
+  foreach ($source_node->childNodes as $node) {
+    $result .= $dom->saveHTML($node);
+  }
+  return $result;
+}
+
+function _olctex_html2tex ($source) {
+  
+  // Convert entities
+  foreach (_olctex_html2tex_entity_table() as $search => $replace) {
+    $source = _olctex_replace('&'.$search.';', $replace, $source);
+  }
+  
+  // Convert tags
+  $dom = new DOMDocument();
+  $dom->loadHTML('<?xml encoding="UTF-8" >'.$source);
+  
+  $body_elements = $dom->getElementsByTagName('body');
+  if ($body_elements->length === 1) {
+    
+    // Convert HTML tags
+    $body = $body_elements->item(0);
+    $result = _olctex_html2tex_merge($dom, $body);
+    return $result;
+    
+  }
+  else {
+    echo "\n" . '_olctex_html2tex() error: problem finding body';
+    exit;
+  }
+
+}
+
+function _olctex_html2tex_multiple($sources) {
+  return array_map(_olctex_html2tex, $sources);
+}
+
+function _olctex_replace($search, $replace, $subject) {
+  $result = explode($search, $subject);
+  $result = implode($replace, $result);
+  return $result;
+}
+
+
+function _olctex_html2tex_merge ($dom, $node) {
+  
+  if (!$node->hasChildNodes()) {
+  
+    // BASIS CASE: Return leaf node
+    $is_cdata = empty($node->tagName);
+    if ($is_cdata) {
+      
+      // Return character data
+      $result = $dom->saveHTML($node);
+      
+      // Escape special characters
+      
+      // WHEN ESCAPING => BACKSLASH MUST BE ESCAPED FIRST
+      $result = _olctex_replace('\\', '\\textbackslash ', $result);
+
+      $result = _olctex_replace('&', '\\&', $result);
+      $result = _olctex_replace('%', '\\%', $result);
+      $result = _olctex_replace('$', '\\$', $result);
+      $result = _olctex_replace('#', '\\#', $result);
+      $result = _olctex_replace('_', '\\_', $result);
+      $result = _olctex_replace('{', '\\{', $result);
+      $result = _olctex_replace('}', '\\}', $result);
+      $result = _olctex_replace('~', '\\textasciitilde ', $result);
+      $result = _olctex_replace('^', '\\textasciicircum ', $result);
+      
+      return $result;
+      
+    }
+    else {
+      
+      // Return formatted content
+      return _olctex_html2tex_replacements($node->tagName, '', $node);
+      
+    }
+    
+  }
+  else {
+    
+    // RECURSIVE CASE: Process each node
+    
+    $child_content = '';
+    foreach ($node->childNodes as $child) {
+      $child_content .= _olctex_html2tex_merge($dom, $child);
+    }
+    return _olctex_html2tex_replacements($node->tagName, $child_content, $node);
+    
+  }
+  
+}
+
+function _olctex_html2tex_entity_table() {
+  return array(
+  
+    'nbsp' => ' ',
+    'quot' => '"',
+    'lt' => '<',
+    'gt' => '>',
+  
+    // WHEN UNESCAPING => AMPERSAND MUST BE UNESCAPED LAST
+    'amp' => '&',
+  
+  );
+}
+
+function _olctex_html2tex_replacements($tag, $contents, $node) {
+  if (empty($tag)) {
+    return $contents;
+  }
+  else {
+    switch ($tag) {
+      case 'h2':
+        return '\\subsubsection{'.$contents.'}';
+        break;
+      case 'li':
+        return '\\item ' . $contents;
+      case 'ul':
+        return 
+            '\\begin{itemize}' . "\n"
+          . $contents . "\n"
+          . '\\end{itemize}' . "\n";
+        break;
+      case 'ol':
+        return 
+            '\\begin{enumerate}' . "\n"
+          . $contents . "\n"
+          . '\\end{enumerate}' . "\n";
+        break;
+      case 'blockquote':
+        return
+            '\\begin{quote}' . "\n"
+          . $contents . "\n"
+          . '\\end{quote}' . "\n";
+        break;
+      case 'strong':
+      case 'b':
+        return '\\textbf{'.$contents.'}';
+        break;
+      case 'em':
+        return '\\textit{'.$contents.'}';
+        break;
+      case 'body':
+        return $contents;
+        break;
+      case 'br':
+      case 'p':
+      case 'div':
+        return "\n".$contents;
+        break;
+      case 'u':
+        return '\\ul{'.$contents.'}';
+        break;
+      case 'table':
+        // Figure out how many columns there are for the TABULAR function
+        $xpath = new DOMXPath($node->ownerDocument);
+        // Row count
+        $xpath_rows = $xpath->query($node->getNodePath().'//tr');
+        $row_count = $xpath_rows->length;
+        // Cell count
+        $xpath_cells = $xpath->query(
+          $node->getNodePath().'//td' . '|' .
+          $node->getNodePath().'//th'
+        );
+        $cell_count = $xpath_cells->length;
+        // Column count
+        $col_count = $cell_count / $row_count;
+        // Tex column argument
+        $col_width_in_inches = 6.0 / $col_count;
+        $tex_col_spec = '|'.implode('|', array_fill(0, $col_count, 'p{'.$col_width_in_inches.'in}')).'|';
+        
+        $tex_table =
+          '\\vspace{.125in}' . "\n" .
+          '\\par \\noindent' . "\n" .
+          '\\begin{tabular}{'.$tex_col_spec.'}' . "\n" .
+            '\\hline' . "\n" .
+            $contents . "\n" .
+          '\\end{tabular}' . "\n" .
+          '\\vspace{.125in}' . "\n" .
+          '\\par \\noindent' . "\n";
+          
+        return $tex_table;
+        break;
+      case 'thead':
+      case 'tbody':
+        return $contents;
+        break;
+      case 'tr':
+        $result = $contents . ' \\\\ \\hline ' . "\n";
+        return $result;
+        break;
+      case 'th':
+        $result .= '\cellcolor{black}\color{white}';
+      case 'td':
+        // Decide whether to place ampersand (&) at the beginning of tag
+        $xpath = new DOMXPath($node->ownerDocument);
+        $has_siblings_of_same_type = substr($node->getNodePath(), -1) == ']';
+        if ($has_siblings_of_same_type) {
+          $matches = array();
+          $match_found == preg_match('/.*\\[(.*)\\]$/', $node->getNodePath(), $matches);
+          $is_first = $matches[1] == 1;
+          if (!$is_first) {
+            $result = '& ' . $result;
+          }
+          else {
+            // do nothing
+          }
+        }
+        else {
+          // do nothing
+        }
+        $result .= $contents;
+        return $result;
+        break;
+      case 'span':
+        return $contents;
+        break;
+      default:
+        dpr('_olctex_html2tex_replacements(): Undefined tag:');
+        dpr($tag); exit;
+        return $contents;
+        break;
+    }
+  }
+}
+
+function _olctex_first_second($first, $second) {
+  
+  if ($first === NULL) {$first = '';}
+  if ($second === NULL) {$second = '';}
+  
+  $result = array(
+    'first' => '',
+    'second' => '',
+  );
+  
+  if (!empty($first)) {
+    $result['first'] = $first;
+    $result['second'] = $second;
+  }
+  else {
+    $result['first'] = $second;
+  }
+  
+  return (object)$result;
+  
+}

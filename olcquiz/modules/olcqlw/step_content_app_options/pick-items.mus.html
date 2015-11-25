@@ -1,0 +1,48 @@
+<table>
+  <thead>
+    <tr>
+      <th>Select</th>
+      <th>Answer text</th>
+      <th>Question audio</th>
+    </th>
+  </thead>
+  <tbody>
+    {{#part}}{{#node.olcbooklet_parts}}
+    <tr
+      class="
+        {{#item.lkt.text}}{{^und.0}}disabled{{/und.0}}{{/item.lkt.text}}
+        {{#item.lkt.audio}}{{^und.0}}disabled{{/und.0}}{{/item.lkt.audio}}
+      "  
+    ><td>
+      <!-- Select -->
+      <input type="checkbox" id="{{node.nid}}" />
+      {{#item.lkt.audio}}{{^und.0}}</div>{{/und.0}}{{/item.lkt.audio}}
+      {{#item.lkt.text}}{{^und.0}}</div>{{/und.0}}{{/item.lkt.text}}
+    </td>
+    <td>
+      <!-- Text -->
+      {{#item.lkt.text}}
+        {{#und.0}}
+          {{safe_value}}
+        {{/und.0}}
+        {{^und.0}}
+          <img src="{{missing.url}}" /> This item is missing
+        {{/und.0}}
+      {{/item.lkt.text}}
+    </td>
+    <td>
+      <!-- Audio -->
+      {{#item.lkt.audio}}
+        {{#und.0}}
+          <audio controls><source src="http://textbook.olc.edu/api/file/{{fid}}"/></audio>
+        {{/und.0}}
+        {{^und.0}}
+          {{missing_url}}
+          <img src="{{missing.url}}" /> This item is missing
+        {{/und.0}}
+      {{/item.lkt.audio}}
+    </td></tr> 
+    {{/node.olcbooklet_parts}}{{/part}}
+  </tbody>
+</table>
+
